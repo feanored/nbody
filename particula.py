@@ -6,7 +6,9 @@ from math import sqrt
 X, Y, Z = 0, 1, 2
 
 # constante G em S.I.
-G = -6.67408E-11
+# G = -6.67408E-11
+# constante G em Unidades Solares
+G = -1
 
 class Particula():
     """Classe Partícula (em Unidades S.I.)"""
@@ -22,8 +24,9 @@ class Particula():
 
     def __str__(self):
         '''(Particula) -> str'''
-        txt = "%s: pos = (%.2f, %.2f, %.2f), vel=(%.2f, %.2f, %.2f)\n"%(
-              self.label, self.x(), self.y(), self.z(), self.vx(), self.vy(), self.vz())
+        txt = "%s: pos = (%.2f, %.2f, %.2f), vel=(%.2f, %.2f, %.2f), mass=%.3f\n"%(
+              self.label, self.x(), self.y(), self.z(), 
+              self.vx(), self.vy(), self.vz(), self.m())
         return txt
 
     def x(self):
@@ -82,6 +85,9 @@ class Particula():
 
     def m(self):
         return self.mass
+
+    def set_m(self, m):
+        self.mass = m
 
     def distancia(self, other):
         '''(Particula, Particula) -> int ou float
