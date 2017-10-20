@@ -3,12 +3,13 @@
 from visual import *
 from math import pi
 from sys import argv
-from particula import Particula
 from random import uniform as next_rand
 from datetime import datetime as time
+from vetor import Vetor
+from particula import Particula
 
 # constantes (unidades solares)
-R, V, M = 250, 1.5, 1.4 # [UA, UA / Ano, Massa Solar]
+R, V, M = 200, 1.5, 1.4 # [UA, UA / Ano, Massa Solar]
 
 # densidade de estrelas típicas com 1 raio solar
 RHO = (5./8) * M / 0.004652 # [Massa Solar / UA]
@@ -20,6 +21,8 @@ EPS = 5 # [UA]
 dt = 1./12
 
 class Nbody:
+    """Classe Nbody"""
+
     def __init__(self, pts):
         '''(Nbody, list of Particula) -> None
         Recebe uma lista de particulas'''
@@ -28,8 +31,8 @@ class Nbody:
         self.bodies = pts
         self.pontos = []
         for body in self.bodies:
-            v = vector(body.x(),body.y(),body.z())
-            r = 15 * (body.m() * 3. / RHO / 4. / (pi**2))**(1./3)
+            v = vector(body.r.x, body.r.y, body.r.z)
+            r = 15 * (body.m * 3. / RHO / 4. / (pi**2))**(1./3)
             s = sphere(pos=v, radius=r, make_trail=self.trail, retain=100,
                 color=(next_rand(0, 1), next_rand(0, 1), next_rand(0, 1)))
             self.pontos.append(s)
@@ -39,20 +42,19 @@ class Nbody:
         '''(NBody) -> str'''
         txt = ""
         for body in self.bodies:
-            txt += str(body)
+            txt += str(body)+"\n"
         return txt
 
     def mass_center(self):
         '''(Nbody) -> 3-tuple, float
         Retorna a posição do centro de massa e massa total
         '''
-        m, ma = [0, 0, 0], 0
+        p, m = Vetor(), 0
         for body in self.bodies:
-            m = [m[0]+body.m()*body.x(), 
-            m[1]+body.m()*body.y(),
-            m[2]+body.m()*body.z()]
-            ma += body.m()
-        return (m[0]/ma, m[1]/ma, m[2]/ma), ma
+            p += body.p
+            m += body.m
+        c = p.multiply(1./m)
+        return c.to_list(), m
 
     def atualiza_anim(self, t):
         '''(Nbody, float) -> None
@@ -67,11 +69,11 @@ class Nbody:
         # atualiza posição das bolinhas
         for i in range(self.n):
             body = self.bodies[i]
-            v = vector(body.x(),body.y(),body.z())
+            v = vector(body.r.x, body.r.y, body.r.z)
             self.pontos[i].pos = v
 
         # centraliza a visualização no centro de massa
-        scene.center, z = self.mass_center()
+        scene.center, m = self.mass_center()
 
     def key_input(self, ev):
         '''(Nbody, event) -> None
@@ -96,25 +98,32 @@ class Nbody:
         while i < len(self.bodies) and not has:
             j = 1
             while j < len(self.bodies) and not has:
-                if self.bodies[i].label != self.bodies[j].label:
-                    dist = self.bodies[i].distancia(self.bodies[j])
+                if self.bodies[i] != self.bodies[j]:
+                    dist = self.bodies[i].r.distancia(self.bodies[j].r)
                     if dist < EPS:
                         # calcula novos raio e massa
-                        m = self.bodies[i].m()+self.bodies[j].m()
+                        m = self.bodies[i].m + self.bodies[j].m
                         r = 15 * (m * 3. / RHO / 4. / (pi**2))**(1./3)
+
                         # colisão inelástica
-                        mi = mult_v(self.bodies[i].vel, self.bodies[i].m())
-                        mj = mult_v(self.bodies[j].vel, self.bodies[j].m())
-                        mt = soma_v(mi, mj)
-                        v = mult_v(mt, 1./m)
-                        # atualiza um dos corpos
-                        self.bodies[i].set_m(m)
-                        self.bodies[i].vel = [v[0], v[1], v[2]]
-                        self.pontos[i].radius = r
+                        p = self.bodies[i].p + self.bodies[j].p
+                        v = p.multiply(1./m)
+
+                        # obtém qual dos 2 tem momento maior
+                        a, b = i, j
+                        if self.bodies[j] > self.bodies[i]:
+                            a, b = j, i
+
+                        # atualiza o de momento maior
+                        self.bodies[a].m = m
+                        self.bodies[a].v = v
+                        self.bodies[a].p = p
+                        self.pontos[a].radius = r
+
                         # exclui o outro
-                        self.bodies.pop(j)
-                        self.pontos[j].visible = False
-                        self.pontos.pop(j)
+                        self.bodies.pop(b)
+                        self.pontos[b].visible = False
+                        self.pontos.pop(b)
                         has = True
                 j += 1
             i += 1
@@ -130,36 +139,26 @@ class Nbody:
                 body = self.bodies[i]
 
                 # somatoria de forças devido às demais partículas
-                soma_f = [0, 0, 0]
+                f_res = Vetor()
                 for j in range(self.n):
                     if i != j:
-                        soma_f = soma_v(soma_f, body.gravity(self.bodies[j]))
+                        f_res += body.gravity(self.bodies[j])
                 
                 # calculando impulso nesse corpo
-                px, py, pz = mult_v(soma_f, dt)
+                dp = f_res.multiply(dt)
                 
                 # calculando velocidade atual
-                vx = body.vx() + (px / body.m())
-                vy = body.vy() + (py / body.m())
-                vz = body.vz() + (pz / body.m())
-                body.set_vx(vx)
-                body.set_vy(vy)
-                body.set_vz(vz)
+                body.v += dp.multiply(1./body.m)
+                body.p = body.v.multiply(body.m)
                 
                 # calculando posicao atual (na pos auxiliar)
-                x = body.x() + body.vx() * dt
-                y = body.y() + body.vy() * dt
-                z = body.z() + body.vz() * dt
-                body.set_x_(x)
-                body.set_y_(y)
-                body.set_z_(z)
+                body.r_ = body.r + body.v.multiply(dt)
 
             # atualiza posições das partículas
             for body in self.bodies:
-                body.set_x(body.x_())
-                body.set_y(body.y_())
-                body.set_z(body.z_())
+                body.r = body.r_
 
+            # trata as colisões
             self.colisoes()
 
             t += dt
@@ -177,27 +176,13 @@ class Nbody:
 
 ###############################################################################
 
-def soma_v(a, b):
-    s = []
-    for i in range(len(a)):
-        s.append(a[i] + b[i])
-    return s
-
-def mult_v(a, m):
-    p = ()
-    for i in range(len(a)):
-        p += (a[i]*m, )
-    return p
-
-###############################################################################
-
 def main():
     
     # configuracões da tela
     scene.background = (0.6, 0.6, 0.6)
     scene.width = 1366
     scene.height = 700
-    scene.range = R*2./3
+    scene.range = R
 
     # número de corpos
     N = 5
@@ -206,8 +191,8 @@ def main():
     
     pts = []
     # pontos fixos
-    #pts.append(Particula("p_1", [0, -R/2, 0], [0.5, 0, 0], M*5))
-    #pts.append(Particula("p_2", [0, R/2, 0], [-1.2, 0, 0], M))
+    pts.append(Particula("p_1", (0, -R/2, 0), (0.5, 0, 0), M*5))
+    pts.append(Particula("p_2", (0, R/2, 0), (-1.2, 0, 0), M))
 
     # pontos aleatórios
     for i in range(len(pts), N):
@@ -222,7 +207,7 @@ def main():
         m = next_rand(M/4, M)
 
         # objeto particula
-        p = Particula(lbl, [x, y, z], [vx, vy, vz], m)
+        p = Particula(lbl, (x, y, z), (vx, vy, vz), m)
         pts.append(p)
 
     # inicia objeto Nbody
@@ -232,7 +217,7 @@ def main():
     scene.center, ma = corpos.mass_center()
 
     # tempo Total (anos) (TEMPO DE COLAPSO GRAVITACIONAL)
-    T = sqrt(3./32*pi*(4./3*(pi**2)*(R**3))/ma)
+    T = sqrt(3./32*pi*(R**3)/ma)
     print("Tempo de colapso: %f anos"%(T))
 
     # pausa, espera por enter ou click
