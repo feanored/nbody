@@ -11,7 +11,7 @@ class Vetor:
         self.z = u[2]
 
     def __str__(self):
-        txt = "(%.2f, %.2f, %.2f)"%(self.x, self.y, self.z)
+        txt = "%.14f, %.14f, %.14f"%(self.x, self.y, self.z)
         return txt
 
     def __eq__(self, other):
@@ -47,6 +47,9 @@ class Vetor:
 
     def modulo(self):
         return sqrt(self.modulo2())
+
+    def unit(self):
+        return self.multiply(1./self.modulo())
 
     def distancia(self, other):
         '''(Vetor, Vetor) -> float

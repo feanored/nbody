@@ -23,7 +23,7 @@ class Particula:
 
     def __str__(self):
         '''(Particula) -> str'''
-        txt = "%s: pos=%s, vel=%s, mass=%.3f"%(
+        txt = "%s, %s, %s, %.14f"%(
               self.label, self.r, self.v, self.m)
         return txt
 
@@ -46,10 +46,12 @@ class Particula:
         '''
         # constante G em S.I. = -6.67408E-11
         # constante G em Unidades Solares
-        G = -1
-        # intensidade da força
-        f = G * (self.m * other.m / self.r.distancia2(other.r))
+        G = 1
         # vetor posição
-        r = self.r - other.r
+        r = other.r - self.r
+        # intensidade da força
+        f = G * (self.m * other.m / r.modulo2())
+        # direção
+        r = r.unit()
         # retorna vetor força
         return r.multiply(f)
