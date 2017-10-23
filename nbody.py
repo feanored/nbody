@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-
+from __future__ import division
 from visual import *
-from math import pi, sqrt
+from math import pi, sqrt, ceil
 from sys import argv
 from random import triangular as next_rand
 from datetime import datetime as time
@@ -9,17 +9,21 @@ from datetime import datetime as time
 from vetor import Vetor
 from particula import Particula
 
+###############################################################################
+
 # constantes (unidades solares)
 R, V, M = 100, 1.5, 70 # [UA, UA / Ano, Massa Solar]
 
-# densidade de estrelas tÃ­picas com 1 raio solar
-RHO = (5./8) * M / 0.004652 # [Massa Solar / UA]
+# densidade de estrelas típicas com 1 raio solar
+RHO = (5/8) * M / 0.004652 # [Massa Solar / UA]
 
 # raio de relaxamento
 EPS = R/40 # [UA]
 
 # passagem de tempo (anos)
-dt = 1./12
+dt = 1/12
+
+###############################################################################
 
 class Nbody:
     """Classe Nbody"""
@@ -30,18 +34,19 @@ class Nbody:
         '''
         self.n = len(pts)
         self.bodies = pts
-        self.pontos = []
+        self.pontos = {}
         if self.n > 0:
             self.make_stars()
         # FLAGS
         self.trail = False
         self.center = False
-        self.pause = True
         self.verbose = False
+        self.pause = False
 
     def __str__(self):
         '''(NBody) -> str'''
-        txt = '   Label   |   PosiÃ§Ã£o (x, y, z)   |   Velocidade (x, y, z)   |   Massa \n'
+        txt  = '   Label   |   Posição (x, y, z)   |'
+        txt += '   Velocidade (x, y, z)   |   Massa \n'
         for i in range(74): txt += '-'
         txt += '\n'
         for body in self.bodies:
@@ -56,10 +61,10 @@ class Nbody:
     def make_stars(self):
         for body in self.bodies:
             v = vector(body.r.x, body.r.y, body.r.z)
-            r = 15 * (body.m * 3. / RHO / 4. / (pi**2))**(1./3)
-            s = sphere(pos=v, radius=r, make_trail=self.trail, retain=200,
+            r = 15 * (body.m * 3. / RHO / 4. / (pi**2))**(1/3)
+            s = sphere(pos=v, radius=r, make_trail=self.trail, retain=100,
                 color=(next_rand(0, 1), next_rand(0, 1), next_rand(0, 1)))
-            self.pontos.append(s)
+            self.pontos[body.label] = s
 
     def key_input(self, ev):
         '''(Nbody, event) -> None
@@ -73,51 +78,57 @@ class Nbody:
             scene.range -= vector(EPS*5)
         elif ev.key == "o":
             scene.range += vector(EPS*5)
+        elif ev.key == "p":
+            self.pause = True
+            while self.pause:
+                scene.waitfor("keydown")
+        elif ev.key == "r":
+            self.pause = False
+
 
     def mouse(self, ev):
         '''(Nbody, event) -> None
         Trigger para clicks do mouse
         '''
-        if not self.pause:
-            scene.center = ev.pos
+        scene.center = ev.pos
 
     def set_trail(self):
         '''(Nbody) -> None
-        Ativa ou desativa traÃ§o das Ã³rbitas
+        Ativa ou desativa traço das órbitas
         '''
         self.trail = not self.trail
         for p in self.pontos:
-            p.make_trail = self.trail
+            self.pontos[p].make_trail = self.trail
 
     def mass_center(self):
         '''(Nbody) -> 3-tuple, float
-        Retorna a posiÃ§Ã£o do centro de massa e massa total
+        Retorna a posição do centro de massa e massa total
         '''
         s, m = Vetor(), 0
         for body in self.bodies:
             s += body.r.multiply(body.m)
             m += body.m
-        c = s.multiply(1./m)
+        c = s.multiply(1/m)
         return c.to_list(), m
 
     def atualiza_anim(self, t):
         '''(Nbody, float) -> None
-        Atualiza visualizaÃ§Ã£o do sistema
+        Atualiza visualização do sistema
         '''
-        # taxa por segundo de atualizaÃ§Ãµes
+        # taxa por segundo de atualizações
         rate(120)
 
-        print("::ATUALIZAÃ‡ÃƒO - %d Corpos - (%.2f anos)::"%(self.n, t))
+        print("::ATUALIZAÇÃO - %d Corpos - (%.2f anos)::"%(self.n, t))
         if self.verbose:
             print(self)
 
-        # atualiza posiÃ§Ã£o das bolinhas
+        # atualiza posição das bolinhas
         for i in range(self.n):
             body = self.bodies[i]
             v = vector(body.r.x, body.r.y, body.r.z)
-            self.pontos[i].pos = v
+            self.pontos[body.label].pos = v
 
-        # centraliza a visualizaÃ§Ã£o no centro de massa
+        # centraliza a visualização no centro de massa
         if self.center:
             scene.center, m = self.mass_center()
 
@@ -134,13 +145,13 @@ class Nbody:
                     if dist < EPS:
                         # calcula novos raio e massa
                         m = self.bodies[i].m + self.bodies[j].m
-                        r = 15 * (m * 3. / RHO / 4. / (pi**2))**(1./3)
+                        r = 15 * (m * 3. / RHO / 4. / (pi**2))**(1/3)
 
-                        # colisÃ£o inelÃ¡stica
+                        # colisão inelástica
                         p = self.bodies[i].p + self.bodies[j].p
-                        v = p.multiply(1./m)
+                        v = p.multiply(1/m)
 
-                        # obtÃ©m qual dos 2 tem momento maior
+                        # obtém qual dos 2 tem momento maior
                         a, b = i, j
                         if self.bodies[j] > self.bodies[i]:
                             a, b = j, i
@@ -149,12 +160,12 @@ class Nbody:
                         self.bodies[a].m = m
                         self.bodies[a].v = v
                         self.bodies[a].p = p
-                        self.pontos[a].radius = r
+                        self.pontos[self.bodies[a].label].radius = r
 
                         # exclui o outro
+                        self.pontos[self.bodies[b].label].visible = False
+                        del self.pontos[self.bodies[b].label]
                         self.bodies.pop(b)
-                        self.pontos[b].visible = False
-                        self.pontos.pop(b)
                         has = True
                 j += 1
             i += 1
@@ -162,15 +173,14 @@ class Nbody:
 
     def integracao(self, tempo):
         '''(Nbody, float) -> None
-        Realiza integraÃ§Ã£o numÃ©rica da forÃ§a gravitacional em Nbody
+        Realiza integração numérica da força gravitacional em Nbody
         '''
         t = 0
-        self.pause = False
         while t < tempo and self.n > 1:
             for i in range(self.n):
                 body = self.bodies[i]
 
-                # somatoria de forÃ§as devido Ã s demais partÃ­culas
+                # somatoria de forças devido às demais partículas
                 f_res = Vetor()
                 for j in range(self.n):
                     if i != j:
@@ -181,20 +191,20 @@ class Nbody:
                 
                 # calculando velocidade atual
                 body.p = body.p + dp
-                body.v = body.p.multiply(1./body.m)
+                body.v = body.p.multiply(1/body.m)
                 
                 # calculando posicao atual (na pos auxiliar)
                 body.r_ = body.r + body.v.multiply(dt)
 
-            # atualiza posiÃ§Ãµes das partÃ­culas
+            # atualiza posições das partículas
             for body in self.bodies:
                 body.r = body.r_
 
-            # trata as colisÃµes
+            # trata as colisões
             self.colisoes()
 
             t += dt
-            # atualiza animaÃ§Ã£o
+            # atualiza animação
             self.atualiza_anim(t)
 
     def registra(self):
@@ -210,7 +220,7 @@ class Nbody:
 
     def carrega(self, nome):
         '''(Nbody, str) -> list
-        LÃª estado inicial de arquivo de texto
+        Lê estado inicial de arquivo de texto
         '''
         arq = open("regs/"+nome+".txt", "r")
         c = 0
@@ -231,17 +241,24 @@ class Nbody:
 
 def main():
     print("\n# feanored-NBody #\n")
-    # configuracÃµes da tela
+    # configuracões da tela
     scene.title = "# feanored-NBody #"
-    scene.background = (0.7, 0.7, 0.7)
+    scene.background = (0, 0, 0)
+    scene.lights = []
+    distant_light(direction=(0,R,0), color=color.white)
+    distant_light(direction=(0,-R,0), color=color.white)
+    distant_light(direction=(R,0,0), color=color.white)
+    distant_light(direction=(-R,0,0), color=color.white)
+    distant_light(direction=(0,0,R), color=color.white)
+    distant_light(direction=(0,0,-R), color=color.white)
     scene.width = 1366
-    scene.height = 700
+    scene.height = 768
     scene.range = R*2
 
     # inicia objeto Nbody
     corpos = Nbody()
     
-    # parÃ¢metros
+    # parâmetros
     if len(argv) > 1:
         if "t" in argv[1]:
             corpos.trail = True
@@ -252,44 +269,50 @@ def main():
 
     op = ""
     while op == "" or not op in "lsg":
-        print("O que deseja?\n [S]imular o Sistema Solar\n [L]er estado inicial de arquivo\n [G]erar partÃ­culas aleatÃ³rias\n")
-        op = raw_input("Digite opÃ§Ã£o: ")
+        txt  = "O que deseja?\n"
+        txt += " [S]imular o Sistema Solar\n"
+        txt += " [L]er estado inicial de arquivo\n"
+        txt += " [G]erar partículas aleatórias\n"
+        print(txt)
+        op = raw_input("Digite opção: ")
 
     # Sistema Solar
     if op == "s":
         global EPS
-        scene.range = 20
-        scene.caption = "SISTEMA SOLAR"
         EPS = 0.2
+        scene.range = 20
+        scene.forward = vector(0, -1, 0)
+        corpos.center = True
+        corpos.trail = True
         pts = []
         # Velocidade circular v0 = sqrt(GM/R)
         pts.append(Particula("Sol", (0, 0, 0), (0, 0, 0), 1))
-        pts.append(Particula("JÃºpiter", (5.5, 0, 0), (0, sqrt(1./5.5), 0), 1E-3))
-        pts.append(Particula("Saturno", (10, 0, 0), (0, sqrt(1./10), 0), 3E-4))
-        pts.append(Particula("Terra", (1, 0, 0), (0, 1, 0), 3.003E-6))
-        pts.append(Particula("Marte", (1.4, 0, 0), (0, sqrt(1./1.4), 0), 3.2e-7))
+        pts.append(Particula("Jupiter", (5.5, 0, 0), (0, 0, sqrt(1/5.5)), 1E-3))
+        pts.append(Particula("Saturno", (10, 0, 0), (0, 0, sqrt(1/10)), 3E-4))
+        pts.append(Particula("Terra", (1, 0, 0), (0, 0, 1), 3.003E-6))
+        pts.append(Particula("Marte", (1.4, 0, 0), (0, 0, sqrt(1/1.4)), 3.2e-7))
     
-    # Ler partÃ­culas de arquivo
+    # Ler partículas de arquivo
     elif op == "l":
         nome = raw_input("Digite nome do arquivo com estado inicial: ")
         pts = corpos.carrega(nome)
         if len(pts) < 1:
-            print("Arquivo invÃ¡lido!")
+            print("Arquivo inválido!")
             return
 
-    # pontos aleatÃ³rios
+    # pontos aleatórios
     elif op == "g":
         pts = []
         N = ""
         while N == "":
-            N = raw_input("Qtde de partÃ­culas: ")
+            N = raw_input("Qtde de partículas: ")
         N = int(N)
         if N < 2:
-            print("O mÃ­nimo de partÃ­culas Ã© 2!")
+            print("O mínimo de partículas é 2!")
             return
         for i in range(N):
             ''' 
-            Gera N particulas com distribuiÃ§Ã£o triangular
+            Gera N particulas com distribuição triangular
             '''
             lbl = "p_%d"%(i+1)
             x = next_rand(-R, R)
@@ -300,30 +323,36 @@ def main():
             vz = next_rand(-V, V)
             m = next_rand(0.7, M)
             '''
-            Objeto PartÃ­cula
+            Objeto Partícula
             '''
             p = Particula(lbl, (x, y, z), (vx, vy, vz), m)
             pts.append(p)
 
-    # tempo para integraÃ§Ã£o em anos
-    T = ""
-    while T == "":
-        T = raw_input("Insira o tempo de integraÃ§Ã£o (em anos): ")
-    T = float(T)
+    # tempo para integração em anos
+    T = raw_input("Insira o tempo de integração (em anos) [2500]: ")
+    if T == "":
+        T = 2500
+    else:
+        T = float(T)
     if T < 1:
-        print("Tempo invÃ¡lido!")
+        print("Tempo inválido!")
         return
 
-    # insere as partÃ­culas
+    # insere as partículas
     corpos.set_bodies(pts)
 
+    # aumenta tamanho dos planetas
     if op == "s":
-        # aumenta tamanho dos planetas
-        for i in range(1, corpos.n):
-            corpo = corpos.pontos[i]
+        corpos.pontos["Terra"].retain = 77
+        corpos.pontos["Marte"].retain = 126
+        corpos.pontos["Jupiter"].retain = 970
+        corpos.pontos["Saturno"].retain = 2365
+        for p in corpos.pontos:
+            if p == "Sol": continue
+            corpo = corpos.pontos[p]
             corpo.radius = corpo.radius*5
 
-    # centraliza visualizaÃ§Ã£o 
+    # centraliza visualização 
     scene.center, ma = corpos.mass_center()
 
     # pausa, espera por tecla ou click
@@ -333,13 +362,15 @@ def main():
     scene.bind('keydown', corpos.key_input)
     scene.bind('click', corpos.mouse)
 
-    # liga a forÃ§a da gravidade
+    # liga a força da gravidade
     corpos.integracao(T)
 
     # salva estado final em arquivo de texto
     corpos.registra()
 
     print("\n::Fim::")
+
+###############################################################################
 
 if __name__ == "__main__":
     main()

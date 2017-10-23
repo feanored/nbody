@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
 
 from math import sqrt
 
@@ -49,18 +50,20 @@ class Vetor:
         return sqrt(self.modulo2())
 
     def unit(self):
-        return self.multiply(1./self.modulo())
+        return self.multiply(1/self.modulo())
 
     def distancia(self, other):
         '''(Vetor, Vetor) -> float
         Recebe referências `self` e `other` a objetos vetor e
         retorna a distância euclidiana entre os pontos representados
         por `self` e `other`.'''
-        return (self - other).modulo()
+        d = self - other
+        return d.modulo()
 
     def distancia2(self, other):
         '''(Vetor, Vetor) -> float
         Recebe referências `self` e `other` a objetos vetor e
         retorna a distância quadrática euclidiana entre os pontos representados
         por `self` e `other`.'''
-        return (self - other).modulo2()
+        d = self - other
+        return d.modulo2()
