@@ -2,6 +2,9 @@
 
 Simulações gravitacionais de N-Corpos
 
-Simula o Sistema Solar
+
+Simulação do Sistema Solar com Sol, Terra, Marte, Júpiter e Saturno
+
 Gera pontos (ou estrelas) aleatórias
+
 Salva e recupera estado de arquivo de texto
