@@ -2,11 +2,17 @@
 from __future__ import division
 
 from vetor import Vetor
+from math import pi
+
+# constante G em S.I. 
+# G = -6.67408E-11
+# constante G em Unidades Solares
+G = 1
 
 class Particula:
     """Classe Partícula"""
 
-    def __init__(self, lbl, r = (0, 0, 0), v = (0, 0, 0), mass = 1):
+    def __init__(self, lbl, r = (0, 0, 0), v = (0, 0, 0), mass = 1, color=None):
         '''(Particula, str, 3-tuple, 3-tuple, float) -> None
         O padrão é uma "partícula" na posição origem
         '''
@@ -21,6 +27,8 @@ class Particula:
         self.p = self.v.multiply(self.m)
         # vetor posição auxiliar
         self.r_ = Vetor(r)
+        # cor
+        self.cor = color
 
     def __str__(self):
         '''(Particula) -> str'''
@@ -45,14 +53,11 @@ class Particula:
         Retorna o vetor força gravitacional em self causada por other
         g = G * m1 * m2 / r^2 * r (r é o vetor posicao)
         '''
-        # constante G em S.I. = -6.67408E-11
-        # constante G em Unidades Solares
-        G = 1
         # vetor posição
         r = other.r - self.r
         # intensidade da força
         f = G * (self.m * other.m / r.modulo2())
         # direção
-        r = r.unit()
+        #r = r.unit()
         # retorna vetor força
-        return r.multiply(f)
+        return r.unit().multiply(f)
