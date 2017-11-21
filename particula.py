@@ -57,7 +57,5 @@ class Particula:
         r = other.r - self.r
         # intensidade da força
         f = G * (self.m * other.m / r.modulo2())
-        # direção
-        #r = r.unit()
         # retorna vetor força
         return r.unit().multiply(f)
