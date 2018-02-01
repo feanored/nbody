@@ -2,7 +2,7 @@
 from __future__ import division
 
 from vetor import Vetor
-from math import pi
+#from math import pi
 
 # constante G em S.I. 
 # G = -6.67408E-11

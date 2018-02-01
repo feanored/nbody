@@ -50,7 +50,7 @@ class Nbody:
         '''(NBody) -> str'''
         txt  = '   Label   |   Posicao (x, y, z)   |'
         txt += '   Velocidade (x, y, z)   |   Massa \n'
-        for i in range(74): txt += '-'
+        txt += '-' * 74
         txt += '\n'
         for body in self.bodies:
             txt += str(body)+"\n"
@@ -64,7 +64,7 @@ class Nbody:
     def make_stars(self):
         for body in self.bodies:
             v = vector(body.r.x, body.r.y, body.r.z)
-            r = 15 * (body.m * 3. / RHO / 4. / (pi**2))**(1/3)
+            r = 15 * (body.m * 3. / RHO / 4. / (math.pi**2))**(1/3)
             if body.cor is None:
                 body.cor = (next_rand(0, 1), next_rand(0, 1), next_rand(0, 1))
             s = sphere(pos=v, radius=r, make_trail=self.trail, 
@@ -114,7 +114,7 @@ class Nbody:
             s += body.r.multiply(body.m)
             m += body.m
         c = s.multiply(1/m)
-        return c.to_list(), m
+        return c.to_list()
 
     def atualiza_anim(self, t):
         '''(Nbody, float) -> None
@@ -135,7 +135,7 @@ class Nbody:
 
         # centraliza a visualizacao no centro de massa
         if self.center:
-            scene.center, m = self.mass_center()
+            scene.center = self.mass_center()
 
     def colisoes(self):
         '''(Nbody) -> None
@@ -206,7 +206,7 @@ class Nbody:
                 body.r = body.r_
 
             # trata as colisoes
-            self.colisoes()
+            #self.colisoes()
 
             t += dt
             # atualiza animacao
@@ -362,7 +362,7 @@ def main():
             corpos.pontos[p].radius *= 5
 
     # centraliza visualizacao 
-    scene.center, ma = corpos.mass_center()
+    scene.center = corpos.mass_center()
 
     # pausa, espera por click
     scene.mouse.getclick()
