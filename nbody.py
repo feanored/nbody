@@ -14,7 +14,8 @@ from particula import Particula
 # constantes (unidades solares)
 R, V, M = 100, 1.5, 70 # [UA, UA / Ano, Massa Solar]
 
-# constante gravitacional
+# G em S.I. : -6.67408E-11
+# G em unidades solares
 G = 1
 
 # densidade tipica de estrelas com 1 raio solar
@@ -65,10 +66,14 @@ class Nbody:
         for body in self.bodies:
             v = vector(body.r.x, body.r.y, body.r.z)
             r = 15 * (body.m * 3. / RHO / 4. / (math.pi**2))**(1/3)
+
             if body.cor is None:
                 body.cor = (next_rand(0, 1), next_rand(0, 1), next_rand(0, 1))
+            if body.material is None:
+                body.material = materials.marble
+            
             s = sphere(pos=v, radius=r, make_trail=self.trail, 
-                retain=100, color=body.cor)
+                retain=100, color=body.cor, material=body.material)
             self.pontos[body.label] = s
 
     def key_input(self, ev):
@@ -123,9 +128,8 @@ class Nbody:
         # taxa por segundo de atualizacoes
         rate(120)
 
-        print("::ATUALIZACAO - %d Corpos - (%.2f anos)::"%(self.n, t))
         if self.verbose:
-            print(self)
+            print("::ATUALIZACAO - %d Corpos - (%.2f anos)::"%(self.n, t))
 
         # atualiza posicao das bolinhas
         for i in range(self.n):
@@ -189,7 +193,7 @@ class Nbody:
                 f_res = Vetor()
                 for j in range(self.n):
                     if i != j:
-                        f_res += body.gravity(self.bodies[j])
+                        f_res += body.gravity(self.bodies[j], G)
                 
                 # calculando impulso nesse corpo
                 dp = f_res.multiply(dt)
@@ -206,7 +210,7 @@ class Nbody:
                 body.r = body.r_
 
             # trata as colisoes
-            #self.colisoes()
+            self.colisoes()
 
             t += dt
             # atualiza animacao
@@ -249,6 +253,7 @@ def main():
     # configuracoes da tela
     scene.title = "# feanored-NBody #"
     scene.background = (0.2, 0.2, 0.2)
+    scene.autoscale = 1
     scene.lights = []
     distant_light(direction=(0,R,0), color=color.white)
     distant_light(direction=(0,-R,0), color=color.white)
@@ -291,16 +296,11 @@ def main():
         corpos.trail = True
         pts = []
         # Velocidade circular v0 = sqrt(GM/R)
-        pts.append(Particula("Sol", (0, 0, 0), (0, 0, 0), 
-            1, color.yellow))
-        pts.append(Particula("Jupiter", (5.5, 0, 0), (0, 0, sqrt(G/5.5)), 
-            1E-3, color.cyan))
-        pts.append(Particula("Saturno", (10, 0, 0), (0, 0, sqrt(G/10)), 
-            3E-4, color.orange))
-        pts.append(Particula("Terra", (1, 0, 0), (0, 0, sqrt(G)), 
-            3.003E-6, color.blue))
-        pts.append(Particula("Marte", (1.4, 0, 0), (0, 0, sqrt(G/1.4)), 
-            3.2e-7, color.red))
+        pts.append(Particula("Sol", (0, 0, 0), (0, 0, 0), 1, color.yellow, materials.emissive))
+        pts.append(Particula("Jupiter", (5.5, 0, 0), (0, 0, sqrt(G/5.5)), 1E-3, color.cyan))
+        pts.append(Particula("Saturno", (10, 0, 0), (0, 0, sqrt(G/10)), 3E-4, color.orange))
+        pts.append(Particula("Terra", (1, 0, 0), (0, 0, sqrt(G)), 3.003E-6, color.blue))
+        pts.append(Particula("Marte", (1.4, 0, 0), (0, 0, sqrt(G/1.4)), 3.2e-7, color.red))
     
     # Ler particulas de arquivo
     elif op == "l":
@@ -313,13 +313,15 @@ def main():
     # pontos aleatorios
     elif op == "g":
         pts = []
-        N = ""
-        while N == "":
-            N = raw_input("Qtde de particulas: ")
-        N = int(N)
-        if N < 2:
-            print("Minimo de 2 particulas!")
-            return
+        N = 0
+        while N < 2:
+            N = raw_input("Qtde de particulas [20]: ")
+            if N == "":
+                N = 20
+            else:
+                N = int(N)
+            if N < 2:
+                print("Minimo de 2 particulas!")
         for i in range(N):
             ''' 
             Gera N particulas aleatorias

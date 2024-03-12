@@ -21,3 +21,5 @@ Recomenda-se instalar no diretório `C:\Python27`
 Além disso, é preciso uma versão específica do Numpy, o comando de instalação recomendado é:
 
 `C:\Python27\python.exe -m pip install numpy==1.11`
+
+[Link](https://vpython.org/contents/docs/) da documentação oficial

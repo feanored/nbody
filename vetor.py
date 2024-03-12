@@ -46,6 +46,9 @@ class Vetor:
     def modulo2(self):
         return self.x**2 + self.y**2 + self.z**2
 
+    def modulo3(self):
+        return self.modulo2()**(3/2)
+
     def modulo(self):
         return sqrt(self.modulo2())
 
