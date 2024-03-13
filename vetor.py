@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-from math import sqrt
+from numpy import sqrt
 
 class Vetor:
     """Classe Vetor, representa um vetor do R^3"""
@@ -44,10 +44,11 @@ class Vetor:
         return self + other.multiply(-1)
 
     def modulo2(self):
-        return self.x**2 + self.y**2 + self.z**2
+        return self.x*self.x + self.y*self.y + self.z*self.z
 
     def modulo3(self):
-        return self.modulo2()**(3/2)
+        mod3 = self.modulo2()
+        return sqrt(mod3*mod3*mod3)
 
     def modulo(self):
         return sqrt(self.modulo2())

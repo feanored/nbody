@@ -256,8 +256,8 @@ class Nbody:
         '''
         t = time.now()
         t = "%02d%02d%d-%02d%02d"%(t.day, t.month, t.year, t.hour, t.minute)
-        nome = "regs/nbody-%02d#%s.txt"%(self.n, t)
-        arq = open(nome, "w")
+        nome = r"./regs/nbody-%02d#%s.txt"%(self.n, t)
+        arq = open(nome, "w+")
         arq.write(self.__str__())
         arq.close()
 

@@ -22,4 +22,8 @@ Além disso, é preciso uma versão específica do Numpy, o comando de instalaç
 
 `C:\Python27\python.exe -m pip install numpy==1.11`
 
-[Link](https://vpython.org/contents/docs/) da documentação oficial
+Para compatibilidade com sintaxe do Python 3:
+
+`C:\Python27\python.exe -m pip install six`
+
+[Link](https://vpython.org/contents/docs/) da documentação oficial do VPython
