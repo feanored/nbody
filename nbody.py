@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
+from six.moves import input
 from visual import *
 from math import pi, sqrt, ceil
 from sys import argv
@@ -13,10 +14,6 @@ from particula import Particula
 
 # constantes (unidades solares)
 R, V, M = 100, 1.5, 70 # [UA, UA / Ano, Massa Solar]
-
-# G em S.I. : -6.67408E-11
-# G em unidades solares
-G = 1
 
 # densidade tipica de estrelas com 1 raio solar
 RHO = (5/8) * M / 0.004652 # [Massa Solar / UA]
@@ -41,11 +38,16 @@ class Nbody:
         self.pontos = {}
         if self.n > 0:
             self.make_stars()
+
         # atributos de estado
+        self.center = 0
         self.trail = False
-        self.center = False
         self.verbose = False
         self.pause = False
+
+        # G em S.I. : -6.67408E-11
+        # G em unidades solares
+        self.G = 1
 
     def __str__(self):
         '''(NBody) -> str'''
@@ -83,7 +85,19 @@ class Nbody:
         if ev.key == "t":
             self.set_trail()
         elif ev.key == "c":
-            self.center = not self.center
+            if self.center == 1:
+                self.center = 0
+            else:
+                self.center = 1
+            print("Center: ", self.center)
+        elif ev.key == "C":
+            if self.center == 2:
+                self.center = 0
+            else:
+                self.center = 2
+            print("Center: ", self.center)
+        elif ev.key == "v":
+            self.verbose = True
         elif ev.key == "i":
             scene.range -= vector(EPS*5)
         elif ev.key == "o":
@@ -94,6 +108,12 @@ class Nbody:
                 scene.waitfor("keydown")
         elif ev.key == "r":
             self.pause = False
+        elif ev.key == "g":
+            self.G -= 0.1
+            print("G: ", self.G)
+        elif ev.key == "G":
+            self.G += 0.1
+            print("G: ", self.G)
 
 
     def mouse(self, ev):
@@ -111,8 +131,8 @@ class Nbody:
             self.pontos[p].make_trail = self.trail
 
     def mass_center(self):
-        '''(Nbody) -> 3-tuple, float
-        Retorna a posicao do centro de massa e massa total
+        '''(Nbody) -> 3-tuple
+        Retorna a posicao do centro de massa
         '''
         s, m = Vetor(), 0
         for body in self.bodies:
@@ -120,6 +140,17 @@ class Nbody:
             m += body.m
         c = s.multiply(1/m)
         return c.to_list()
+
+    def star_center(self):
+        '''(Nbody) -> 3-tuple
+        Retorna a posicao do corpo de maior massa
+        '''
+        s, m = Vetor(), 0
+        for body in self.bodies:
+            if body.m > m:
+                m = body.m
+                s = body.r
+        return s.to_list()
 
     def atualiza_anim(self, t):
         '''(Nbody, float) -> None
@@ -129,7 +160,8 @@ class Nbody:
         rate(120)
 
         if self.verbose:
-            print("::ATUALIZACAO - %d Corpos - (%.2f anos)::"%(self.n, t))
+            print("::%d Corpos - (%.2f anos)::"%(self.n, t))
+            self.verbose = False
 
         # atualiza posicao das bolinhas
         for i in range(self.n):
@@ -137,9 +169,11 @@ class Nbody:
             v = vector(body.r.x, body.r.y, body.r.z)
             self.pontos[body.label].pos = v
 
-        # centraliza a visualizacao no centro de massa
-        if self.center:
-            scene.center = self.mass_center()
+        # centraliza a visualizacao
+        if self.center == 1:
+            scene.center = self.mass_center() # centro de massa
+        elif self.center == 2:
+            scene.center = self.star_center() # corpo de maior massa
 
     def colisoes(self):
         '''(Nbody) -> None
@@ -193,7 +227,7 @@ class Nbody:
                 f_res = Vetor()
                 for j in range(self.n):
                     if i != j:
-                        f_res += body.gravity(self.bodies[j], G)
+                        f_res += body.gravity(self.bodies[j], self.G)
                 
                 # calculando impulso nesse corpo
                 dp = f_res.multiply(dt)
@@ -250,6 +284,7 @@ class Nbody:
 
 def main():
     print("\n# feanored-NBody #\n")
+
     # configuracoes da tela
     scene.title = "# feanored-NBody #"
     scene.background = (0.2, 0.2, 0.2)
@@ -270,24 +305,28 @@ def main():
     
     # parametros
     if len(argv) > 1:
+        print(argv[1])
         if "t" in argv[1]:
             corpos.trail = True
         if "c" in argv[1]:
             corpos.center = True
-        if "v" in argv[1]:
-            corpos.verbose = True
 
     op = ""
-    while op == "" or not op in "lsg":
+    while op == "" or not op in "lsgx":
         txt  = "O que deseja?\n"
         txt += " [S]imular o Sistema Solar\n"
         txt += " [L]er estado inicial de arquivo\n"
         txt += " [G]erar particulas aleatorias\n"
+        txt += " [X] Sair do programa\n"
         print(txt)
-        op = raw_input("Digite opcao: ")
+        op = input("Digite opcao: ")
+
+    # Sair do programa
+    if op == "x":
+        return
 
     # Sistema Solar
-    if op == "s":
+    elif op == "s":
         global EPS
         EPS = 0.2
         scene.range = 20
@@ -297,14 +336,14 @@ def main():
         pts = []
         # Velocidade circular v0 = sqrt(GM/R)
         pts.append(Particula("Sol", (0, 0, 0), (0, 0, 0), 1, color.yellow, materials.emissive))
-        pts.append(Particula("Jupiter", (5.5, 0, 0), (0, 0, sqrt(G/5.5)), 1E-3, color.cyan))
-        pts.append(Particula("Saturno", (10, 0, 0), (0, 0, sqrt(G/10)), 3E-4, color.orange))
-        pts.append(Particula("Terra", (1, 0, 0), (0, 0, sqrt(G)), 3.003E-6, color.blue))
-        pts.append(Particula("Marte", (1.4, 0, 0), (0, 0, sqrt(G/1.4)), 3.2e-7, color.red))
+        pts.append(Particula("Jupiter", (5.5, 0, 0), (0, 0, sqrt(corpos.G/5.5)), 1E-3, color.cyan))
+        pts.append(Particula("Saturno", (10, 0, 0), (0, 0, sqrt(corpos.G/10)), 3E-4, color.orange))
+        pts.append(Particula("Terra", (1, 0, 0), (0, 0, sqrt(corpos.G)), 3.003E-6, color.blue))
+        pts.append(Particula("Marte", (1.4, 0, 0), (0, 0, sqrt(corpos.G/1.4)), 3.2e-7, color.red))
     
     # Ler particulas de arquivo
     elif op == "l":
-        nome = raw_input("Digite nome do arquivo com estado inicial: [nbody-] ")
+        nome = input("Digite nome do arquivo com estado inicial: [nbody-] ")
         pts = corpos.carrega(nome)
         if len(pts) < 1:
             print("Arquivo invalido!")
@@ -315,7 +354,7 @@ def main():
         pts = []
         N = 0
         while N < 2:
-            N = raw_input("Qtde de particulas [20]: ")
+            N = input("Qtde de particulas [20]: ")
             if N == "":
                 N = 20
             else:
@@ -341,7 +380,7 @@ def main():
             pts.append(p)
 
     # tempo para integracao em anos
-    T = raw_input("Insira o tempo de integracao (em anos) [2500]: ")
+    T = input("Insira o tempo de integracao (em anos) [2500]: ")
     if T == "":
         T = 2500
     else:
