@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
-from six.moves import input
-from visual import *
-from math import pi, sqrt, ceil
-from sys import argv
+from __future__ import print_function, division
 from random import triangular as next_rand
 from datetime import datetime as time
+from six.moves import input
+from numpy import sqrt
+from visual import *
+from sys import argv
+from math import pi
 
 from vetor import Vetor
 from particula import Particula
@@ -20,9 +21,6 @@ RHO = (5/8) * M / 0.004652 # [Massa Solar / UA]
 
 # raio de relaxamento
 EPS = R/40 # [UA]
-
-# passagem de tempo (anos)
-dt = 1/12
 
 ###############################################################################
 
@@ -49,6 +47,11 @@ class Nbody:
         # G em unidades solares
         self.G = 1
 
+        # passagem de tempo (anos)
+        self._dt = 1/120
+        self.dt = self._dt
+
+
     def __str__(self):
         '''(NBody) -> str'''
         txt  = '   Label   |   Posicao (x, y, z)   |'
@@ -67,7 +70,7 @@ class Nbody:
     def make_stars(self):
         for body in self.bodies:
             v = vector(body.r.x, body.r.y, body.r.z)
-            r = 15 * (body.m * 3. / RHO / 4. / (math.pi**2))**(1/3)
+            r = 15 * (body.m * 3. / RHO / 4. / (pi**2))**(1/3)
 
             if body.cor is None:
                 body.cor = (next_rand(0, 1), next_rand(0, 1), next_rand(0, 1))
@@ -82,38 +85,60 @@ class Nbody:
         '''(Nbody, event) -> None
         Trigger para eventos do teclado
         '''
-        if ev.key == "t":
+        if ev.key == "o":
             self.set_trail()
+        
         elif ev.key == "c":
             if self.center == 1:
                 self.center = 0
             else:
                 self.center = 1
             print("Center: ", self.center)
+        
         elif ev.key == "C":
             if self.center == 2:
                 self.center = 0
             else:
                 self.center = 2
             print("Center: ", self.center)
+        
         elif ev.key == "v":
             self.verbose = True
-        elif ev.key == "i":
+        
+        elif ev.key == "V":
+            print(self)
+        
+        elif ev.key == "Z":
             scene.range -= vector(EPS*5)
-        elif ev.key == "o":
+        
+        elif ev.key == "z":
             scene.range += vector(EPS*5)
+        
         elif ev.key == "p":
             self.pause = True
             while self.pause:
                 scene.waitfor("keydown")
+        
         elif ev.key == "r":
             self.pause = False
+        
         elif ev.key == "g":
             self.G -= 0.1
             print("G: ", self.G)
+        
         elif ev.key == "G":
             self.G += 0.1
             print("G: ", self.G)
+        
+        elif ev.key == "t":
+            self.dt -= self._dt
+            if self.dt <= self._dt: 
+                self.dt = self._dt
+            print("dt: ", self.dt)
+        
+        elif ev.key == "T":
+            self.dt += self._dt
+            print("dt: ", self.dt)
 
 
     def mouse(self, ev):
@@ -230,14 +255,14 @@ class Nbody:
                         f_res += body.gravity(self.bodies[j], self.G)
                 
                 # calculando impulso nesse corpo
-                dp = f_res.multiply(dt)
+                dp = f_res.multiply(self.dt)
                 
                 # calculando velocidade atual
                 body.p = body.p + dp
                 body.v = body.p.multiply(1/body.m)
                 
                 # calculando posicao atual (na pos auxiliar)
-                body.r_ = body.r + body.v.multiply(dt)
+                body.r_ = body.r + body.v.multiply(self.dt)
 
             # atualiza posicoes das particulas
             for body in self.bodies:
@@ -246,7 +271,7 @@ class Nbody:
             # trata as colisoes
             self.colisoes()
 
-            t += dt
+            t += self.dt
             # atualiza animacao
             self.atualiza_anim(t)
 
@@ -400,17 +425,18 @@ def main():
         corpos.pontos["Saturno"].retain = 2365
         for p in corpos.pontos:
             if p == "Sol": continue
-            corpos.pontos[p].radius *= 5
+            corpos.pontos[p].radius *= 10
 
     # centraliza visualizacao 
     scene.center = corpos.mass_center()
 
-    # pausa, espera por click
-    scene.mouse.getclick()
-
     # registra eventos
     scene.bind('keydown', corpos.key_input)
     scene.bind('click', corpos.mouse)
+
+    # pausa no início
+    corpos.pause = True
+    scene.waitfor("keydown")
 
     # liga a forca da gravidade
     corpos.integracao(T)
